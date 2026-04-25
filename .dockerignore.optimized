@@ -1,0 +1,75 @@
+# Version Control
+.git
+.gitignore
+.gitattributes
+
+# IDE & Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node/npm
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer & Dependencies (sebelum multi-stage build)
+vendor/
+.phpunit.result.cache
+phpunit.xml
+
+# Laravel - Storage logs (jangan di-copy)
+storage/logs/*
+storage/app/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+.phpunit.result.cache
+
+# Environment & Config
+.env
+.env.*.php
+.env.*.local
+.env.example
+.env.whatsapp.example
+.env.backup
+
+# Docker compose files (jangan di-copy ke image)
+docker-compose.yml
+docker-compose.dev.yml
+docker-compose.optimized.yml
+.dockerignore
+Dockerfile
+Dockerfile.*
+
+# Testing & Documentation
+tests/
+docs/
+AUDIT_REPORT.md
+DECISION_FRAMEWORK.md
+PROJECT_STRUCTURE_ANALYSIS.md
+README.md
+*.md
+
+# Build artifacts
+dist/
+build/
+.cache/
+
+# Symlinks & Special files
+public/storage
+public/.htaccess
+
+# Misc development files
+.config
+.composer
+.agent
+.phpunit.result.cache
+artisan
+package.json
+vite.config.js

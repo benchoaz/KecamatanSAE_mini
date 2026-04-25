@@ -1,0 +1,134 @@
+services:
+  # ============================================================
+  # PostgreSQL Database - Matching .env configuration
+  # ============================================================
+  db:
+    image: postgres:17-alpine
+    container_name: kecamatan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dashboard_kecamatan
+      POSTGRES_USER: ${DB_USERNAME:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - kecamatan-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user} -d dashboard_kecamatan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Redis - For caching and session management
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: kecamatan-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - kecamatan-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # ============================================================
+  # PHP-FPM Application - Using custom Dockerfile with OPcache
+  # ============================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: kecamatan-app
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file: .env
+    environment:
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_MEMORY=256
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=20000
+      - SESSION_DRIVER=redis
+      - SESSION_DOMAIN=null
+    volumes:
+      - ./:/var/www
+      - ./docker/php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/opcache.ini:ro
+    networks:
+      - kecamatan-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "php-fpm", "-t" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================
+  # Nginx Web Server - Optimized for Laravel
+  # ============================================================
+  nginx:
+    image: nginx:alpine
+    container_name: kecamatan-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kecamatan-dashboard.rule=Host(`kecamatanbesuk.my.id`)"
+      - "traefik.http.services.kecamatan-dashboard.loadbalancer.server.port=80"
+    volumes:
+      - ./:/var/www:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      kecamatan-network:
+        aliases:
+          - dashboard-kecamatan-nginx
+    depends_on:
+      - app
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================
+  # Laravel Scheduler - Runs schedule:run every minute
+  # ============================================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: kecamatan-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file: .env
+    command: >
+      sh -c "while true; do php artisan schedule:run --no-interaction >> /var/www/storage/logs/scheduler.log 2>&1; sleep 60; done"
+    volumes:
+      - ./:/var/www
+    networks:
+      - kecamatan-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  kecamatan-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redis_data:
+  nginx_cache:
