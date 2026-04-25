@@ -12,7 +12,7 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $roleAdmin = \App\Models\Role::where('nama_role', 'Super Admin')->first();
+        $roleAdmin = \App\Models\Role::where('name', 'Super Admin')->first();
 
         \App\Models\User::updateOrCreate(
             ['username' => 'admin'],
