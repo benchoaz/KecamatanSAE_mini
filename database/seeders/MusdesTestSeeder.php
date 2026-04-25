@@ -20,7 +20,7 @@ class MusdesTestSeeder extends Seeder
     {
         // Cari user operator desa pertama
         $operatorDesa = User::whereHas('role', function ($q) {
-            $q->where('nama_role', 'operator_desa');
+            $q->where('name', 'Operator Desa');
         })->first();
 
         if (!$operatorDesa || !$operatorDesa->desa_id) {
