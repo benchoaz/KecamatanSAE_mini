@@ -12,13 +12,27 @@ class ApplicationProfileService
     public function getProfile()
     {
         return Cache::rememberForever($this->cacheKey, function () {
-            return AppProfile::first() ?? new AppProfile([
-                'app_name' => 'Kecamatan SAE',
-                'region_name' => 'Kecamatan Besuk',
-                'region_level' => 'kecamatan',
-                'tagline' => 'Solusi Administrasi Terpadu',
-            ]);
+            try {
+                // Check if table exists before querying to prevent boot-time errors during migration
+                if (!\Illuminate\Support\Facades\Schema::hasTable('app_profiles')) {
+                    return $this->getDefaultProfile();
+                }
+
+                return AppProfile::first() ?? $this->getDefaultProfile();
+            } catch (\Throwable $e) {
+                return $this->getDefaultProfile();
+            }
         });
+    }
+
+    protected function getDefaultProfile()
+    {
+        return new AppProfile([
+            'app_name' => 'Kecamatan SAE',
+            'region_name' => 'Kecamatan Besuk',
+            'region_level' => 'kecamatan',
+            'tagline' => 'Solusi Administrasi Terpadu',
+        ]);
     }
 
     public function getAppName()

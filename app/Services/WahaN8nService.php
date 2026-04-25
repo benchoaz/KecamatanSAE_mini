@@ -22,9 +22,18 @@ class WahaN8nService
      */
     public function getSettings(): ?WahaN8nSetting
     {
-        return Cache::remember($this->cacheKey, 3600, function () {
-            return WahaN8nSetting::first();
-        });
+        try {
+            return Cache::remember($this->cacheKey, 3600, function () {
+                // Check if table exists before querying to prevent boot-time errors during migration
+                if (!\Illuminate\Support\Facades\Schema::hasTable('waha_n8n_settings')) {
+                    return null;
+                }
+
+                return WahaN8nSetting::first();
+            });
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**

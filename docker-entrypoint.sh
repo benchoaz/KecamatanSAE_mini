@@ -31,20 +31,23 @@ mkdir -p bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-# 4. Database Migrations (PRIORITAS UTAMA)
+# 4. Clear Laravel Cache first to ensure migrations run with a clean state
+echo "⚙️ Clearing Laravel cache..."
+php artisan optimize:clear || echo "⚠️ Optimize clear failed."
+
+# 5. Database Migrations (PRIORITAS UTAMA)
 # Kita jalankan migrasi lebih awal untuk mencegah error "Undefined table"
 echo "🗄️ Running database migrations..."
 php artisan migrate --force --no-interaction || echo "⚠️ Migration failed or already run, continuing..."
 
-# 5. Handle APP_KEY if missing
+# 6. Handle APP_KEY if missing
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
     echo "🔑 APP_KEY is missing, generating one..."
     php artisan key:generate --force --no-interaction || echo "⚠️ Key generate failed (probably table missing), will retry later."
 fi
 
-# 6. Laravel Optimization
+# 7. Laravel Optimization
 echo "⚙️ Optimizing configuration..."
-php artisan optimize:clear || echo "⚠️ Optimize clear failed."
 php artisan config:cache || echo "⚠️ Config cache failed."
 
 # 7. Start the application
